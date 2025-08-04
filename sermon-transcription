@@ -2,38 +2,34 @@
   "nodes": [
     {
       "parameters": {
-        "operation": "get",
-        "documentURL": "={{ $('Create Docs').item.json.id }}"
+        "aggregate": "aggregateAllItemData",
+        "include": "specifiedFields",
+        "fieldsToInclude": "data",
+        "options": {}
       },
-      "type": "n8n-nodes-base.googleDocs",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
       "position": [
-        -1360,
-        745
+        860,
+        -440
       ],
-      "id": "393609e6-0998-42ef-b9da-925856a8ca76",
-      "name": "Google Docs",
-      "credentials": {
-        "googleDocsOAuth2Api": {
-          "id": "QIuTsnHnIgcChY2y",
-          "name": "Google Docs account"
-        }
-      }
+      "id": "9166994e-ed7b-4a06-afea-28a4e2b51b29",
+      "name": "Aggregate"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are a Christian writer creating a blog post from a sermon transcript. Your goal is to turn the transcript into a clear, conversational, and engaging reflection that can be published as a separate blog post — not a transcript.\n\nPlease do the following:\n\n1. Write a **summary or devotional-style reflection** based on the core message of the sermon.\n2. Use a **friendly, approachable tone** (like a pastor writing a devotional for everyday readers).\n3. Make the content **keyword-rich** for SEO (use relevant biblical or spiritual search phrases).\n4. Include a **quote** from the sermon that captures the heart of the message.\n5. End with an invitation to listen to the full sermon, using this placeholder:\n   > *Click here to listen to the full sermon.*\n\n**Do not include the entire transcript.** Focus on retelling or reflecting on the key points in a way that’s inspiring and skimmable.\n\nHere is the sermon transcript:\n\n\"\"\"\n{{ $json.content }}\n\"\"\"\n",
+        "text": "=You are a professional transcription formatter. Your task is to take a raw sermon transcript and clean it up for readability and presentation. Please do the following:\n\n1. Add appropriate paragraph breaks for each new idea or speaker shift.\n2. Ensure the text is well-structured and easy to read.\n3. Fix punctuation, capitalization, and spacing where needed.\n4. Format the transcript with proper sentence flow — no run-ons or fragmented text.\n5. Do NOT change the speaker’s original message or meaning.\n\nOutput the transcript as neatly formatted plain text, ready to be published on a blog. The formatting should be visually neat and justified, but the output should remain plain text.\n\nHere is the transcript:\n\n\"\"\"\n{{ $json.combined }}\n\"\"\"",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2,
       "position": [
-        -1140,
-        745
+        1300,
+        -540
       ],
-      "id": "64802779-bb21-4608-893c-673068bae4dd",
-      "name": "AI Agent1"
+      "id": "612cff9e-8473-40cf-8481-a637756d3d5f",
+      "name": "AI Agent"
     },
     {
       "parameters": {
@@ -43,11 +39,11 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        -1052,
-        965
+        1320,
+        -360
       ],
-      "id": "849d324b-4a33-4881-bf9a-dbc75b27bdd9",
-      "name": "Google Gemini Chat Model1",
+      "id": "c034a9f2-9b98-48dc-b7ad-da0f66c45048",
+      "name": "Google Gemini Chat Model",
       "credentials": {
         "googlePalmApi": {
           "id": "rROhGggv3UKdDt8C",
@@ -57,23 +53,99 @@
     },
     {
       "parameters": {
-        "folderId": "1MulPPZJBPqNqFPJQnEMJINx6lF-spVc_",
-        "title": "=Sermon_{{ $now.format(\"YYYY-MM-DD_HH-mm\") }}_Blogpost.docx"
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $('Create Docs').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "options": {}
       },
-      "type": "n8n-nodes-base.googleDocs",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        -764,
-        745
+        2780,
+        -440
       ],
-      "id": "26ca4742-0580-44b3-bfff-a73d2cf7adcd",
-      "name": "Blog Post Document",
+      "id": "c1138861-24a4-4fbb-beb1-77624a55db18",
+      "name": "HTTP Request3",
       "credentials": {
         "googleDocsOAuth2Api": {
           "id": "QIuTsnHnIgcChY2y",
           "name": "Google Docs account"
         }
       }
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $('Create Docs').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2120,
+        -440
+      ],
+      "id": "0f694b64-be98-4598-a337-c800f450503b",
+      "name": "Get Docs File",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const doc = items[0].json;\nconst content = doc.body.content;\n\nlet updates = [];\n\nfor (const block of content) {\n  if (!block.paragraph || !block.paragraph.elements) continue;\n\n  const startIndex = block.startIndex;\n  const endIndex = block.endIndex;\n\n  // Push text style update for this entire paragraph block\n  updates.push({\n    updateTextStyle: {\n      range: {\n        startIndex,\n        endIndex\n      },\n      textStyle: {\n        fontSize: {\n          magnitude: 12,\n          unit: 'PT'\n        },\n        weightedFontFamily: {\n          fontFamily: 'Times New Roman'\n        }\n      },\n      fields: 'fontSize,weightedFontFamily'\n    }\n  });\n\n  // Push paragraph alignment update\n  updates.push({\n    updateParagraphStyle: {\n      range: {\n        startIndex,\n        endIndex\n      },\n      paragraphStyle: {\n        alignment: 'JUSTIFIED'\n      },\n      fields: 'alignment'\n    }\n  });\n}\n\nreturn [{ json: { requests: updates } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        -440
+      ],
+      "id": "1c21cc91-c0df-45a2-81ad-300a0fab349b",
+      "name": "Reformat docs file"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $('Create Docs').item.json.id }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"requests\": $json.requests } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        -440
+      ],
+      "id": "da4681b3-13d1-41a4-823a-585ee4ff6a99",
+      "name": "Update docs using the code node",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = items[0].json.body.content;\nlet html = '';\n\nfor (const block of content) {\n  if (!block.paragraph || !block.paragraph.elements) continue;\n\n  for (const el of block.paragraph.elements) {\n    const run = el.textRun;\n    if (!run || !run.content) continue;\n\n    const isBold = run.textStyle?.bold;\n    const text = run.content;\n\n    html += isBold ? `<strong>${text}</strong>` : text;\n  }\n\n  html += '<br>'; // New paragraph\n}\n\nreturn [{ json: { summaryHtml: html } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        -440
+      ],
+      "id": "c75ef50b-b4e5-48fd-a51d-9fa4e151b81b",
+      "name": "Code"
     },
     {
       "parameters": {
@@ -83,7 +155,7 @@
           "actionFields": [
             {
               "action": "insert",
-              "text": "={{ $('AI Agent1').item.json.output }}"
+              "text": "={{ $('AI Agent').item.json.output }}"
             }
           ]
         }
@@ -91,11 +163,11 @@
       "type": "n8n-nodes-base.googleDocs",
       "typeVersion": 2,
       "position": [
-        -544,
-        745
+        1900,
+        -440
       ],
-      "id": "dba8d875-1f95-4f35-800e-eaa06602df15",
-      "name": "Insert Blogpost Transcript",
+      "id": "aef17399-86b5-4b95-bc5a-869fec269300",
+      "name": "Insert transcription",
       "credentials": {
         "googleDocsOAuth2Api": {
           "id": "QIuTsnHnIgcChY2y",
@@ -105,68 +177,748 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "81ffa2ff-6704-4e03-9e88-bbdb89a9d64b",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3460,
+        -440
+      ],
+      "id": "f33ab6d3-cb79-4f2d-8a28-205323a1b177",
+      "name": "Approved or declined?"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "bryanfandawa@gmail.com",
+        "subject": "Google Docs for Revision",
+        "message": "=Please revise the document below.\n\nhttps://docs.google.com/document/d/{{ $('Create Docs').item.json.id }}/edit\n\nOnce edited, please click the approve button.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3700,
+        -300
+      ],
+      "id": "273c7132-9e45-4a68-b397-900bc809bb59",
+      "name": "Approving Email",
+      "webhookId": "35801860-0389-415e-b10e-193a19241f37",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hAP57FDzlAXnYcco",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "bryanfandawa@gmail.com",
+        "subject": "=Sermont Audio {{ $('Create Docs').item.json.name }}",
+        "message": "={{ $json.summaryHtml }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3240,
+        -440
+      ],
+      "id": "e66a63f9-f7df-4c2d-8a98-79fd3d3347f8",
+      "name": "Approve or Decline",
+      "webhookId": "7eefa762-8ba7-4f47-bb81-5e3921759823",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hAP57FDzlAXnYcco",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "ls -lh /home/node\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        60
+      ],
+      "id": "473d5ba7-3ecf-4565-827e-bedea2585324",
+      "name": "List the files downloaded1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c7ca32b9-23ce-441c-be1f-2e273c56102b",
+              "name": "paths",
+              "value": "={{ \n  $json[\"stdout\"]\n    .split(\"\\n\")\n    .filter(p => p.includes(\"part_\") && p.trim() !== \"\")\n    .map(p => \"/home/node/\" + p.trim().split(\" \").pop())\n}}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -580,
+        60
+      ],
+      "id": "ae70a698-c126-4e70-b3a4-21b6854c8cc1",
+      "name": "Make an array1"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        560,
+        20
+      ],
+      "id": "6112dde6-2f8e-4559-bc41-d238e6147d28",
+      "name": "read mp3 as binary1",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "command": "=ffmpeg -hide_banner -loglevel error -user_agent \"Mozilla/5.0\" \\\n-i \"{{ $('Extract URL').item.json.audioUrl }}\" \\\n-ac 1 -ar 16000 -f segment -segment_time 20 -c:a libmp3lame -b:a 32k /home/node/part_%03d.mp3"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        60
+      ],
+      "id": "2281a2b3-a3ca-46d8-b6a5-0650bd60229f",
+      "name": "Cut into chunks and compress1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        300,
+        60
+      ],
+      "id": "bedf3132-4bba-4ce1-af56-307a62e8db90",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:9000/asr",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "audio_file",
+              "inputDataFieldName": "=data"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "task",
+              "value": "transcribe"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        20
+      ],
+      "id": "1b025241-ef4c-42ef-a916-cbb3bb1f33a7",
+      "name": "transcribe1",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1080,
+        80
+      ],
+      "id": "63276c95-25ac-45d1-981c-439a0b803ee9",
+      "name": "Wait",
+      "webhookId": "46857002-d323-4d63-a0c8-8f2c25faaa7a"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "paths",
+        "options": {
+          "destinationFieldName": "path"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        60
+      ],
+      "id": "9f3adaeb-fb37-402b-89a5-4c409bd0954f",
+      "name": "splits array into individual item",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "The first phase\n- Receives a webhook trigger\n- Converts audio link into an mp3 link\n- Cuts audio into chunks and compress (ffmpeg)\n- Audio files are saved in /home/node/part_%03d.mp3\n- Makes an array\n- Splits it into individual chunks so it could be processed \nby the whisper model one at a time\n",
+        "height": 220,
+        "width": 1720
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1880,
+        20
+      ],
+      "typeVersion": 1,
+      "id": "1b99eeb1-10e1-4ddf-baa5-f6187370e930",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.body.post.post_content;\nconst match = html.match(/<audio[^>]+src=\"([^\"]+)\"/);\nconst audioUrl = match ? match[1] : null;\n\nreturn [\n  {\n    json: {\n      audioUrl,\n      title: $json.body.post.post_title,\n      id: $json.body.post.ID\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1240,
+        60
+      ],
+      "id": "b64f16e3-f60f-48e5-be43-dd930d01817d",
+      "name": "Extract URL"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "church-content",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1460,
+        60
+      ],
+      "id": "fb25f590-ef6a-4863-b3e4-5a87914ed260",
+      "name": "Webhook from Wordpress",
+      "webhookId": "9dfdd764-cbc6-4365-a4d2-8c227f2a6eae"
+    },
+    {
+      "parameters": {
+        "content": "The second phase\n- Receives the individual compressed chunks\n- Reads the file as binary\n- Transcribes\n- Waits for 3 seconds so the VM doesn't overwork itself\n",
+        "height": 360,
+        "width": 1400,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -140,
+        -40
+      ],
+      "typeVersion": 1,
+      "id": "341fec03-9ab4-4676-8c6e-99066517e0d5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "The third phase\n- The aggregate node combines all those individual transcribed chunks into one single transcript.\n- The combine string node flattens them into one big string with \\n\n- The AI agent is prompt to clean the transcript\n- A create google docs node is made and transcripts are inserted inside",
+        "height": 440,
+        "width": 1320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        760,
+        -660
+      ],
+      "typeVersion": 1,
+      "id": "4e5b0e8a-3bca-4b41-98ad-f6b252508ce2",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "The fourth phase\n- HTTP request to get docs file because we need a fine-grained control over how to access and manipulate the document.\n- HTTP request to retrieve the full body content in JSON, parse it line by line, and update specific ranges or elements\n- Code node to reformat the google docs\n- HTTP request to retrieve the updated google docs\n- Code node, converts google docs JSON to clean HTML\n\n",
+        "height": 400,
+        "width": 1080,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2100,
+        -620
+      ],
+      "typeVersion": 1,
+      "id": "890a37bf-3ce9-43de-a414-d5f10e939d9a",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "The fifth phase\n- Email node, sends an email that is filled with the transcript for the human to approve\n- If approved, gets the google docs and uploads the approved transcript to wordpress\n- If declined, sends another email filled with the google docs link so the human can edit, once edited press the approve button\nthen uploads the approved transcript to wordpress\n- Execute command node clears the /home/node/part_%03d.mp3 folder for space\n",
+        "height": 460,
+        "width": 1260,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3200,
+        -600
+      ],
+      "typeVersion": 1,
+      "id": "0abdf35a-26b3-406f-a8ab-35d06949d27c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "folderId": "1MulPPZJBPqNqFPJQnEMJINx6lF-spVc_",
+        "title": "=Sermon_{{ $now.format(\"YYYY-MM-DD_HH-mm\") }}.docx"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -440
+      ],
+      "id": "ddb8b266-7cb6-428d-97a7-9229a7c47752",
+      "name": "Create Docs",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "25e0cddd-eef1-4fc4-abad-a98a09ae05d4",
+              "name": "combined",
+              "value": "={{ $json.data.map(d => d.data).join('\\n\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1080,
+        -440
+      ],
+      "id": "cf0afca8-4a24-4c3c-97a4-be39acd1ceb8",
+      "name": "Combine String"
+    },
+    {
+      "parameters": {
         "command": "rm -f /home/node/part_*.mp3\nrm -f /home/node/output.mp3\n"
       },
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
       "position": [
-        -324,
-        745
+        4340,
+        -440
       ],
-      "id": "b225f9ca-0b22-4e1f-bb34-8a233b8795d8",
-      "name": "Execute Command"
+      "id": "52db5318-4f6b-4443-a720-1047dc4e9149",
+      "name": "Execute Command2"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "={{ $('Insert transcription').item.json.documentId }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        3900,
+        -440
+      ],
+      "id": "aae7c6d7-d03e-4619-baae-466de8b90f37",
+      "name": "Get google docs",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://bryanfandawa2025.mystagingwebsite.com/wp-json/wp/v2/{{ $node[\"Webhook from Wordpress\"].json.body.post.post_type }}/{{ $node[\"Webhook from Wordpress\"].json.body.post.ID }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"content\": \"{{ $('Code').item.json.summaryHtml }}\",\n  \"status\": \"publish\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4120,
+        -440
+      ],
+      "id": "aac21a62-2052-479e-902b-e17aca901d50",
+      "name": "Update Wordpress",
+      "credentials": {
+        "wordpressApi": {
+          "id": "vtt0WVjiBzPV8k7K",
+          "name": "Wordpress account 5"
+        }
+      }
     }
   ],
   "connections": {
-    "Google Docs": {
+    "Aggregate": {
       "main": [
         [
           {
-            "node": "AI Agent1",
+            "node": "Combine String",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent1": {
+    "AI Agent": {
       "main": [
         [
           {
-            "node": "Blog Post Document",
+            "node": "Create Docs",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Gemini Chat Model1": {
+    "Google Gemini Chat Model": {
       "ai_languageModel": [
         [
           {
-            "node": "AI Agent1",
+            "node": "AI Agent",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "Blog Post Document": {
+    "HTTP Request3": {
       "main": [
         [
           {
-            "node": "Insert Blogpost Transcript",
+            "node": "Code",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Insert Blogpost Transcript": {
+    "Get Docs File": {
       "main": [
         [
           {
-            "node": "Execute Command",
+            "node": "Reformat docs file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformat docs file": {
+      "main": [
+        [
+          {
+            "node": "Update docs using the code node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update docs using the code node": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Approve or Decline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert transcription": {
+      "main": [
+        [
+          {
+            "node": "Get Docs File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved or declined?": {
+      "main": [
+        [
+          {
+            "node": "Get google docs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Approving Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approving Email": {
+      "main": [
+        [
+          {
+            "node": "Get google docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve or Decline": {
+      "main": [
+        [
+          {
+            "node": "Approved or declined?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List the files downloaded1": {
+      "main": [
+        [
+          {
+            "node": "Make an array1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make an array1": {
+      "main": [
+        [
+          {
+            "node": "splits array into individual item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "read mp3 as binary1": {
+      "main": [
+        [
+          {
+            "node": "transcribe1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cut into chunks and compress1": {
+      "main": [
+        [
+          {
+            "node": "List the files downloaded1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "read mp3 as binary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcribe1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "splits array into individual item": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract URL": {
+      "main": [
+        [
+          {
+            "node": "Cut into chunks and compress1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook from Wordpress": {
+      "main": [
+        [
+          {
+            "node": "Extract URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Docs": {
+      "main": [
+        [
+          {
+            "node": "Insert transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine String": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get google docs": {
+      "main": [
+        [
+          {
+            "node": "Update Wordpress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Wordpress": {
+      "main": [
+        [
+          {
+            "node": "Execute Command2",
             "type": "main",
             "index": 0
           }
