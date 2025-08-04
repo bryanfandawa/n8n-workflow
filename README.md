@@ -2,7 +2,7 @@
 
 This repository contains a fully automated AI-powered transcription and content creation workflow for church sermon audio files using **n8n**, **Whisper**, **Google Docs**, and **Gemini AI**.
 
-Hosted on a **self-hosted Docker-based virtual machine**, this workflow processes sermon audio from WordPress, transcribes it, cleans it up, generates content, and posts it back — all without human intervention unless approval is needed.
+Hosted on a **self-hosted Docker-based virtual machine**, this workflow processes sermon audio from WordPress, transcribes it, cleans it up, and posts it back — all without human intervention unless approval is needed.
 
 ---
 
