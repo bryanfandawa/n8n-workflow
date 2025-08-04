@@ -1,0 +1,182 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "={{ $('Create Docs').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        745
+      ],
+      "id": "393609e6-0998-42ef-b9da-925856a8ca76",
+      "name": "Google Docs",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Christian writer creating a blog post from a sermon transcript. Your goal is to turn the transcript into a clear, conversational, and engaging reflection that can be published as a separate blog post — not a transcript.\n\nPlease do the following:\n\n1. Write a **summary or devotional-style reflection** based on the core message of the sermon.\n2. Use a **friendly, approachable tone** (like a pastor writing a devotional for everyday readers).\n3. Make the content **keyword-rich** for SEO (use relevant biblical or spiritual search phrases).\n4. Include a **quote** from the sermon that captures the heart of the message.\n5. End with an invitation to listen to the full sermon, using this placeholder:\n   > *Click here to listen to the full sermon.*\n\n**Do not include the entire transcript.** Focus on retelling or reflecting on the key points in a way that’s inspiring and skimmable.\n\nHere is the sermon transcript:\n\n\"\"\"\n{{ $json.content }}\n\"\"\"\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -1140,
+        745
+      ],
+      "id": "64802779-bb21-4608-893c-673068bae4dd",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-1.5-flash-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1052,
+        965
+      ],
+      "id": "849d324b-4a33-4881-bf9a-dbc75b27bdd9",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rROhGggv3UKdDt8C",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "folderId": "1MulPPZJBPqNqFPJQnEMJINx6lF-spVc_",
+        "title": "=Sermon_{{ $now.format(\"YYYY-MM-DD_HH-mm\") }}_Blogpost.docx"
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -764,
+        745
+      ],
+      "id": "26ca4742-0580-44b3-bfff-a73d2cf7adcd",
+      "name": "Blog Post Document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ $('Create Docs').item.json.id }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $('AI Agent1').item.json.output }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        745
+      ],
+      "id": "dba8d875-1f95-4f35-800e-eaa06602df15",
+      "name": "Insert Blogpost Transcript",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "rm -f /home/node/part_*.mp3\nrm -f /home/node/output.mp3\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        -324,
+        745
+      ],
+      "id": "b225f9ca-0b22-4e1f-bb34-8a233b8795d8",
+      "name": "Execute Command"
+    }
+  ],
+  "connections": {
+    "Google Docs": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Blog Post Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blog Post Document": {
+      "main": [
+        [
+          {
+            "node": "Insert Blogpost Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Blogpost Transcript": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "404da7777b9ae3a6ef4a84e36ff3f6ed18ddf4e223c2dd8f9560a48938216fe2"
+  }
+}
