@@ -61,28 +61,6 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2780,
-        -440
-      ],
-      "id": "c1138861-24a4-4fbb-beb1-77624a55db18",
-      "name": "HTTP Request3",
-      "credentials": {
-        "googleDocsOAuth2Api": {
-          "id": "QIuTsnHnIgcChY2y",
-          "name": "Google Docs account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "url": "=https://docs.googleapis.com/v1/documents/{{ $('Create Docs').item.json.id }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleDocsOAuth2Api",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
         2120,
         -440
       ],
@@ -276,45 +254,6 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "c7ca32b9-23ce-441c-be1f-2e273c56102b",
-              "name": "paths",
-              "value": "={{ \n  $json[\"stdout\"]\n    .split(\"\\n\")\n    .filter(p => p.includes(\"part_\") && p.trim() !== \"\")\n    .map(p => \"/home/node/\" + p.trim().split(\" \").pop())\n}}",
-              "type": "array"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        -580,
-        60
-      ],
-      "id": "ae70a698-c126-4e70-b3a4-21b6854c8cc1",
-      "name": "Make an array1"
-    },
-    {
-      "parameters": {
-        "fileSelector": "={{ $json.path }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.readWriteFile",
-      "typeVersion": 1,
-      "position": [
-        560,
-        20
-      ],
-      "id": "6112dde6-2f8e-4559-bc41-d238e6147d28",
-      "name": "read mp3 as binary1",
-      "retryOnFail": true,
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
         "command": "=ffmpeg -hide_banner -loglevel error -user_agent \"Mozilla/5.0\" \\\n-i \"{{ $('Extract URL').item.json.audioUrl }}\" \\\n-ac 1 -ar 16000 -f segment -segment_time 20 -c:a libmp3lame -b:a 32k /home/node/part_%03d.mp3"
       },
       "type": "n8n-nodes-base.executeCommand",
@@ -341,46 +280,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://whisper-api:9000/asr",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "audio_file",
-              "inputDataFieldName": "=data"
-            },
-            {
-              "name": "language",
-              "value": "en"
-            },
-            {
-              "name": "task",
-              "value": "transcribe"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {}
-          }
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        780,
-        20
-      ],
-      "id": "1b025241-ef4c-42ef-a916-cbb3bb1f33a7",
-      "name": "transcribe1",
-      "retryOnFail": true,
-      "onError": "continueErrorOutput"
-    },
-    {
-      "parameters": {
         "amount": 3
       },
       "type": "n8n-nodes-base.wait",
@@ -395,30 +294,13 @@
     },
     {
       "parameters": {
-        "fieldToSplitOut": "paths",
-        "options": {
-          "destinationFieldName": "path"
-        }
-      },
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        -360,
-        60
-      ],
-      "id": "9f3adaeb-fb37-402b-89a5-4c409bd0954f",
-      "name": "splits array into individual item",
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "content": "The first phase\n- Receives a webhook trigger\n- Converts audio link into an mp3 link\n- Cuts audio into chunks and compress (ffmpeg)\n- Audio files are saved in /home/node/part_%03d.mp3\n- Makes an array\n- Splits it into individual chunks so it could be processed \nby the whisper model one at a time\n",
+        "content": "The first phase\n- Receives a webhook trigger.\n- Converts audio link into an mp3 link.\n- Cuts audio into chunks and compress (ffmpeg).\n- Audio files are saved in /home/node/part_%03d.mp3.\n- Makes an array.\n- Splits it into individual chunks so it could be processed \nby the whisper model one at a time.\n",
         "height": 220,
-        "width": 1720
+        "width": 1760
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -1880,
+        -1920,
         20
       ],
       "typeVersion": 1,
@@ -427,7 +309,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const html = $json.body.post.post_content;\nconst match = html.match(/<audio[^>]+src=\"([^\"]+)\"/);\nconst audioUrl = match ? match[1] : null;\n\nreturn [\n  {\n    json: {\n      audioUrl,\n      title: $json.body.post.post_title,\n      id: $json.body.post.ID\n    }\n  }\n];\n"
+        "jsCode": "const post = $json.body?.post ?? {};\nconst meta = $json.body?.post_meta ?? {};\nconst html = post.post_content ?? \"\";\n\n// 1) From content shortcodes/HTML\nfunction fromContent(s=\"\") {\n  let m = s.match(/\\[audio[^\\]]*(?:mp3|src)\\s*=\\s*\"([^\"]+)\"/i);\n  if (m) return m[1];\n  m = s.match(/<audio[^>]*\\ssrc\\s*=\\s*\"([^\"]+)\"/i) ||\n      s.match(/<source[^>]*\\ssrc\\s*=\\s*\"([^\"]+)\"/i);\n  return m ? m[1] : null;\n}\n\n// 2) From meta (common sermon plugins)\nfunction fromMeta(obj) {\n  const CANDIDATES = [\n    \"_wpfc_sermon_enclosure\",  // Sermon Manager\n    \"sermon_audio\",            // Advanced Sermons / variants\n    \"audio\", \"mp3\", \"enclosure\",\n    \"sermon_mp3\", \"wpfc_sermon_audio\", \"ctc_sermon_audio\"\n  ];\n  const AUDIO_EXT = /\\.(mp3|m4a|aac|wav|ogg|flac)(\\?|#|$)/i;\n\n  // direct candidate keys first\n  for (const k of CANDIDATES) {\n    if (k in obj) {\n      const v = Array.isArray(obj[k]) ? obj[k][0] : obj[k];\n      if (typeof v === \"string\" && AUDIO_EXT.test(v)) return v;\n    }\n  }\n  // generic deep scan as last resort\n  const stack = [obj];\n  while (stack.length) {\n    const cur = stack.pop();\n    if (typeof cur === \"string\" && AUDIO_EXT.test(cur)) return cur;\n    if (Array.isArray(cur)) stack.push(...cur);\n    else if (cur && typeof cur === \"object\") stack.push(...Object.values(cur));\n  }\n  return null;\n}\n\nlet audioUrl = fromContent(html) || fromMeta(meta) || null;\n\nreturn [{\n  json: {\n    audioUrl,\n    title: post.post_title ?? post.title ?? null,\n    id: post.ID ?? post.id ?? null,\n    postType: post.post_type ?? post.type ?? null,\n    permalink: $json.body?.post_permalink ?? null,\n    found: Boolean(audioUrl)\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -456,7 +338,7 @@
     },
     {
       "parameters": {
-        "content": "The second phase\n- Receives the individual compressed chunks\n- Reads the file as binary\n- Transcribes\n- Waits for 3 seconds so the VM doesn't overwork itself\n",
+        "content": "The second phase\n- Receives the individual compressed chunks.\n- Reads the file as binary.\n- Transcribes.\n- Waits for 3 seconds so the VM doesn't overwork itself.\n",
         "height": 360,
         "width": 1400,
         "color": 4
@@ -472,7 +354,7 @@
     },
     {
       "parameters": {
-        "content": "The third phase\n- The aggregate node combines all those individual transcribed chunks into one single transcript.\n- The combine string node flattens them into one big string with \\n\n- The AI agent is prompt to clean the transcript\n- A create google docs node is made and transcripts are inserted inside",
+        "content": "The third phase\n- The aggregate node combines all those individual transcribed chunks into one single transcript.\n- The combine string node flattens them into one big string with \\n.\n- The AI agent is prompt to clean the transcript.\n- A create google docs node is made and transcripts are inserted inside.",
         "height": 440,
         "width": 1320,
         "color": 3
@@ -488,7 +370,7 @@
     },
     {
       "parameters": {
-        "content": "The fourth phase\n- HTTP request to get docs file because we need a fine-grained control over how to access and manipulate the document.\n- HTTP request to retrieve the full body content in JSON, parse it line by line, and update specific ranges or elements\n- Code node to reformat the google docs\n- HTTP request to retrieve the updated google docs\n- Code node, converts google docs JSON to clean HTML\n\n",
+        "content": "The fourth phase\n- HTTP request to get docs file because we need a fine-grained control over how to access and manipulate the document.\n- HTTP request to retrieve the full body content in JSON, parse it line by line, and update specific ranges or elements.\n- Code node to reformat the google docs.\n- HTTP request to retrieve the updated google docs.\n- Code node, converts google docs JSON to clean HTML.\n\n",
         "height": 400,
         "width": 1080,
         "color": 5
@@ -504,15 +386,15 @@
     },
     {
       "parameters": {
-        "content": "The fifth phase\n- Email node, sends an email that is filled with the transcript for the human to approve\n- If approved, gets the google docs and uploads the approved transcript to wordpress\n- If declined, sends another email filled with the google docs link so the human can edit, once edited press the approve button\nthen uploads the approved transcript to wordpress\n- Execute command node clears the /home/node/part_%03d.mp3 folder for space\n",
-        "height": 460,
-        "width": 1260,
+        "content": "The fifth phase\n- Email node, sends an email that is filled with the transcript for the human to approve.\n- If approved, gets the google docs and uploads the approved transcript to wordpress.\n- If declined, sends another email filled with the google docs link so the human can edit, once edited press the approve button\nthen uploads the approved transcript to wordpress.\n- If node, checks whether the post is a normal WordPress post (no plugin).\n- If true, use the WordPress Update Post node.\n- If false, use the HTTP Request node to update the post via the custom plugin\n- Execute command node clears the /home/node/part_%03d.mp3 folder for space.\n",
+        "height": 520,
+        "width": 2040,
         "color": 6
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
         3200,
-        -600
+        -660
       ],
       "typeVersion": 1,
       "id": "0abdf35a-26b3-406f-a8ab-35d06949d27c",
@@ -563,19 +445,6 @@
     },
     {
       "parameters": {
-        "command": "rm -f /home/node/part_*.mp3\nrm -f /home/node/output.mp3\n"
-      },
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        4340,
-        -440
-      ],
-      "id": "52db5318-4f6b-4443-a720-1047dc4e9149",
-      "name": "Execute Command2"
-    },
-    {
-      "parameters": {
         "operation": "get",
         "documentURL": "={{ $('Insert transcription').item.json.documentId }}"
       },
@@ -596,28 +465,247 @@
     },
     {
       "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c7ca32b9-23ce-441c-be1f-2e273c56102b",
+              "name": "paths",
+              "value": "={{ \n  $json[\"stdout\"]\n    .split(\"\\n\")\n    .filter(p => p.includes(\"part_\") && p.trim() !== \"\")\n    .map(p => \"/home/node/\" + p.trim().split(\" \").pop())\n}}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -580,
+        60
+      ],
+      "id": "ae70a698-c126-4e70-b3a4-21b6854c8cc1",
+      "name": "Make an array"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "paths",
+        "options": {
+          "destinationFieldName": "path"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        60
+      ],
+      "id": "9f3adaeb-fb37-402b-89a5-4c409bd0954f",
+      "name": "Splits array into individual item",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        560,
+        20
+      ],
+      "id": "6112dde6-2f8e-4559-bc41-d238e6147d28",
+      "name": "Read mp3 as binary1",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "method": "POST",
-        "url": "=https://bryanfandawa2025.mystagingwebsite.com/wp-json/wp/v2/{{ $node[\"Webhook from Wordpress\"].json.body.post.post_type }}/{{ $node[\"Webhook from Wordpress\"].json.body.post.ID }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
+        "url": "http://whisper-api:9000/asr",
         "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={\n  \"content\": \"{{ $('Code').item.json.summaryHtml }}\",\n  \"status\": \"publish\"\n}",
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "audio_file",
+              "inputDataFieldName": "=data"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "task",
+              "value": "transcribe"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        20
+      ],
+      "id": "1b025241-ef4c-42ef-a916-cbb3bb1f33a7",
+      "name": "Transcribe",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $('Create Docs').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4120,
+        2780,
         -440
       ],
-      "id": "aac21a62-2052-479e-902b-e17aca901d50",
-      "name": "Update Wordpress",
+      "id": "c1138861-24a4-4fbb-beb1-77624a55db18",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "QIuTsnHnIgcChY2y",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "rm -f /home/node/part_*.mp3\nrm -f /home/node/output.mp3\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        5080,
+        -460
+      ],
+      "id": "52db5318-4f6b-4443-a720-1047dc4e9149",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "29af543f-4c01-4431-8f35-031fa8288288",
+              "leftValue": "={{ $('Webhook from Wordpress').item.json.body.post.post_type }}",
+              "rightValue": "post",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4100,
+        -440
+      ],
+      "id": "79c60f32-faf7-4414-a7d2-3741b9bceb55",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=https://bryanfandawa2025.mystagingwebsite.com/wp-json/wp/v2/{{ $node[\"Webhook from Wordpress\"].json.body.post.post_type }}/{{ $node[\"Webhook from Wordpress\"].json.body.post.ID }}?context=edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4460,
+        -340
+      ],
+      "id": "bbf0fcbf-7e7b-4411-adf3-dd6a0b1e3c56",
+      "name": "Get",
       "credentials": {
         "wordpressApi": {
-          "id": "vtt0WVjiBzPV8k7K",
-          "name": "Wordpress account 5"
+          "id": "IHnioKTkmH6NSsDJ",
+          "name": "Wordpress account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "postId": "={{ $('Webhook from Wordpress').item.json.body.post_id }}",
+        "updateFields": {
+          "content": "={{ $('Get google docs').item.json.content }}"
+        }
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        4740,
+        -560
+      ],
+      "id": "667055be-ad8b-4d68-8eaa-e54c6d3da4ce",
+      "name": "Wordpress Update",
+      "credentials": {
+        "wordpressApi": {
+          "id": "IHnioKTkmH6NSsDJ",
+          "name": "Wordpress account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://bryanfandawa2025.mystagingwebsite.com/wp-json/wp/v2/{{ $node[\"Webhook from Wordpress\"].json.body.post.post_type }}/{{ $node[\"Webhook from Wordpress\"].json.body.post.ID }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $('Get').item.json.content.raw + \"\\n\\n\" + $('Code').item.json.summaryHtml }}"
+            },
+            {
+              "name": "status",
+              "value": "publish"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4740,
+        -340
+      ],
+      "id": "aac21a62-2052-479e-902b-e17aca901d50",
+      "name": "Updates Wordpress via Plugin",
+      "credentials": {
+        "wordpressApi": {
+          "id": "IHnioKTkmH6NSsDJ",
+          "name": "Wordpress account 6"
         }
       }
     }
@@ -656,17 +744,6 @@
         ]
       ]
     },
-    "HTTP Request3": {
-      "main": [
-        [
-          {
-            "node": "Code",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Get Docs File": {
       "main": [
         [
@@ -693,7 +770,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request3",
+            "node": "HTTP Request",
             "type": "main",
             "index": 0
           }
@@ -766,34 +843,11 @@
       "main": [
         [
           {
-            "node": "Make an array1",
+            "node": "Make an array",
             "type": "main",
             "index": 0
           }
         ]
-      ]
-    },
-    "Make an array1": {
-      "main": [
-        [
-          {
-            "node": "splits array into individual item",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "read mp3 as binary1": {
-      "main": [
-        [
-          {
-            "node": "transcribe1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
       ]
     },
     "Cut into chunks and compress1": {
@@ -818,37 +872,14 @@
         ],
         [
           {
-            "node": "read mp3 as binary1",
+            "node": "Read mp3 as binary1",
             "type": "main",
             "index": 0
           }
         ]
-      ]
-    },
-    "transcribe1": {
-      "main": [
-        [
-          {
-            "node": "Wait",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        []
       ]
     },
     "Wait": {
-      "main": [
-        [
-          {
-            "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "splits array into individual item": {
       "main": [
         [
           {
@@ -907,18 +938,120 @@
       "main": [
         [
           {
-            "node": "Update Wordpress",
+            "node": "If",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update Wordpress": {
+    "Make an array": {
       "main": [
         [
           {
-            "node": "Execute Command2",
+            "node": "Splits array into individual item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Splits array into individual item": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read mp3 as binary1": {
+      "main": [
+        [
+          {
+            "node": "Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Wordpress Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get": {
+      "main": [
+        [
+          {
+            "node": "Updates Wordpress via Plugin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wordpress Update": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updates Wordpress via Plugin": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
             "type": "main",
             "index": 0
           }
